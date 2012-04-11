@@ -1,0 +1,99 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+
+<style type="text/css">
+input[type="button"], .button
+{
+    border: 1px solid #aaa;
+    padding: 6px 12px 6px 12px;
+    background-color: #F0F0F0;
+    color: Black;
+    margin: 2px;
+}
+.button img
+{
+    padding-top: -3px;
+}
+</style>
+
+<script type="text/javascript">
+    var processId;
+
+    function startProcess() {
+        $.ajax({
+            type: "POST",
+            url: "/Task/Begin",
+            data: $("form").serialize(),
+            success: function (data) {
+                $('#myButton').toggle();
+                $('#myButtonProgress').toggle();
+                processId = data;
+                window.setTimeout(checkProcess, 1000);
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                $('#msg').html("Error starting process: " + jqXHR.status + " " + errorThrown);
+            }
+        });
+    }
+
+    function checkProcess() {
+        $.ajax({
+            url: "/Task/GetStatus?id=" + encodeURI(processId),
+            success: function (data) {
+                if (data.toString() == "Done") {
+                    endProcess();
+                } else {
+                    window.setTimeout(checkProcess, 1000);
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                $('#msg').html("Error checking process: " + jqXHR.status + " " + errorThrown);
+                $('#myButton').toggle();
+                $('#myButtonProgress').toggle();
+            }
+        });
+    }
+
+    function endProcess() {
+        $('#myButton').toggle();
+        $('#myButtonProgress').toggle();
+
+        $.ajax({
+            url: "/Task/End?id=" + encodeURI(processId),
+            success: function (data) {
+                $('#msg').html(data);
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                $('#msg').html("Error getting process results: " + jqXHR.status + " " + errorThrown);
+            }
+        });
+    }
+
+    $(document).ready(function () {
+        $('#myButton').click(function () {
+            startProcess();
+        });
+    });
+</script>
+
+<form>
+    <div style="margin-bottom:.5em;">
+        <span>Name: </span> <input type="text" name="Name" value="Bob" />
+    </div>
+    <div>
+        <span>Sleep: </span> <input type="text" name="Sleep" value="2" />
+    </div>
+
+    <div style="margin-top:2em;">
+        <input type="button" id="myButton" value="Start Long Running Process" />
+
+        <span class="button" id="myButtonProgress" style="display:none;">
+            Running Process... 
+            <img src="../../Content/ajax-loader.gif" />
+        </span>
+    </div>
+</form>
+
+<div id="msg" style="margin-top:2em;">The results of the process will go here.</div>
+
